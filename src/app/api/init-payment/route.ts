@@ -48,12 +48,20 @@ export async function POST(req: Request) {
     console.log(`[Payment] Cart: ${cartId} | Original: ${originalAmount} SAR | Commission: ${commissionAmount} SAR (${COMMISSION_RATE}%) | Total charged: ${totalAmount} SAR | Mode: ${process.env.PAYZATY_MODE || 'production'}`);
 
     // 2. إرسال الطلب لبوابة Payzaty
+    const isSandbox = process.env.PAYZATY_MODE === 'sandbox';
+    const accountNo = isSandbox
+      ? (process.env.PAYZATY_SANDBOX_ACCOUNT_NO || process.env.PAYZATY_ACCOUNT_NO!)
+      : process.env.PAYZATY_ACCOUNT_NO!;
+    const secretKey = isSandbox
+      ? (process.env.PAYZATY_SANDBOX_SECRET_KEY || process.env.PAYZATY_SECRET_KEY!)
+      : process.env.PAYZATY_SECRET_KEY!;
+
     const payzatyRes = await fetch(`${PAYZATY_BASE_URL}/checkout`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-AccountNo': process.env.PAYZATY_ACCOUNT_NO!,
-        'X-SecretKey': process.env.PAYZATY_SECRET_KEY!
+        'X-AccountNo': accountNo,
+        'X-SecretKey': secretKey
       },
       body: JSON.stringify({
         amount: totalAmount,
@@ -70,7 +78,19 @@ export async function POST(req: Request) {
       })
     });
 
-    const payzatyData = await payzatyRes.json();
+    // معالجة الرد - مع حماية ضد الردود الفارغة
+    const responseText = await payzatyRes.text();
+    let payzatyData;
+    try {
+      payzatyData = JSON.parse(responseText);
+    } catch {
+      console.error('--- PAYZATY EMPTY/INVALID RESPONSE ---', responseText);
+      throw new Error(
+        isSandbox
+          ? 'بيئة Sandbox لا تستجيب. يرجى التبديل إلى وضع Production أو استخدام مفاتيح Sandbox صحيحة.'
+          : 'بوابة الدفع أرجعت رداً غير صالح. يرجى المحاولة لاحقاً.'
+      );
+    }
 
     if (!payzatyRes.ok) {
       console.error('--- FULL PAYZATY ERROR ---', payzatyData);
