@@ -1,6 +1,15 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
+// نسبة العمولة (يتم التحكم فيها من المتغيرات البيئية)
+// مثال: 1.5 تعني 1.5%
+const COMMISSION_RATE = parseFloat(process.env.COMMISSION_RATE || '0');
+
+// تحديد بيئة العمل: sandbox أو production
+const PAYZATY_BASE_URL = process.env.PAYZATY_MODE === 'sandbox'
+  ? 'https://api.sandbox.payzaty.com'
+  : 'https://api.payzaty.com';
+
 export async function POST(req: Request) {
   try {
     const { cartId, amount, customer } = await req.json();
@@ -13,12 +22,19 @@ export async function POST(req: Request) {
       );
     }
 
+    // حساب المبلغ مع العمولة
+    const originalAmount = parseFloat(amount);
+    const commissionAmount = COMMISSION_RATE > 0
+      ? parseFloat((originalAmount * COMMISSION_RATE / 100).toFixed(2))
+      : 0;
+    const totalAmount = parseFloat((originalAmount + commissionAmount).toFixed(2));
+
     // 1. تسجيل العملية في قاعدة البيانات
     const { data: transaction, error: dbError } = await supabaseAdmin
       .from('transactions')
       .insert([{
         shopify_cart_id: cartId,
-        amount: parseFloat(amount),
+        amount: originalAmount,
         status: 'pending'
       }])
       .select()
@@ -29,8 +45,10 @@ export async function POST(req: Request) {
       throw new Error('فشل في تسجيل العملية في قاعدة البيانات');
     }
 
+    console.log(`[Payment] Cart: ${cartId} | Original: ${originalAmount} SAR | Commission: ${commissionAmount} SAR (${COMMISSION_RATE}%) | Total charged: ${totalAmount} SAR | Mode: ${process.env.PAYZATY_MODE || 'production'}`);
+
     // 2. إرسال الطلب لبوابة Payzaty
-    const payzatyRes = await fetch('https://api.payzaty.com/checkout', {
+    const payzatyRes = await fetch(`${PAYZATY_BASE_URL}/checkout`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -38,7 +56,7 @@ export async function POST(req: Request) {
         'X-SecretKey': process.env.PAYZATY_SECRET_KEY!
       },
       body: JSON.stringify({
-        amount: parseFloat(amount),
+        amount: totalAmount,
         currency: "SAR",
         language: "ar",
         reference: transaction.id,

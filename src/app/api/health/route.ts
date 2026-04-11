@@ -161,6 +161,17 @@ export async function GET(req: Request) {
   if (process.env.PAYZATY_ACCOUNT_NO && process.env.PAYZATY_SECRET_KEY) {
     payzatyChecks['credentials'] = '✅ المفاتيح موجودة';
     payzatyChecks['account_no'] = process.env.PAYZATY_ACCOUNT_NO.substring(0, 4) + '****';
+    payzatyChecks['mode'] = process.env.PAYZATY_MODE === 'sandbox'
+      ? '🧪 Sandbox (تجريبي)'
+      : '🔴 Production (حقيقي)';
+    payzatyChecks['api_url'] = process.env.PAYZATY_MODE === 'sandbox'
+      ? 'https://api.sandbox.payzaty.com'
+      : 'https://api.payzaty.com';
+    
+    const commissionRate = parseFloat(process.env.COMMISSION_RATE || '0');
+    payzatyChecks['commission_rate'] = commissionRate > 0
+      ? `💰 ${commissionRate}% (مثال: 100 SAR → ${(100 + 100 * commissionRate / 100).toFixed(2)} SAR)`
+      : '0% (بدون عمولة)';
   } else {
     payzatyChecks['credentials'] = '❌ مفاتيح Payzaty مفقودة';
     failCount++;
