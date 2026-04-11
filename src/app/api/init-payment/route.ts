@@ -19,10 +19,7 @@ export async function POST(req: Request) {
       .insert([{
         shopify_cart_id: cartId,
         amount: parseFloat(amount),
-        status: 'pending',
-        customer_name: customer.name,
-        customer_email: customer.email,
-        customer_phone: customer.phone
+        status: 'pending'
       }])
       .select()
       .single();
