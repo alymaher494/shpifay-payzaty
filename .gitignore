@@ -25,3 +25,8 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
+
+# sensitive docs - never upload API guides
+*.pdf
+*.doc
+*.docx

@@ -14,7 +14,9 @@ export async function POST(req: Request) {
   try {
     const { cartId, amount, customer } = await req.json();
 
-    // التحقق من بيانات العميل
+    // ──────────────────────────────────────────
+    // حماية 1: التحقق من بيانات العميل
+    // ──────────────────────────────────────────
     if (!customer?.name || !customer?.email || !customer?.phone) {
       return NextResponse.json(
         { error: 'يرجى إدخال جميع بيانات العميل (الاسم، البريد الإلكتروني، رقم الجوال)' },
@@ -22,8 +24,39 @@ export async function POST(req: Request) {
       );
     }
 
-    // حساب المبلغ مع العمولة
+    // ──────────────────────────────────────────
+    // حماية 2: التحقق من صحة المبلغ (منع التلاعب)
+    // ──────────────────────────────────────────
     const originalAmount = parseFloat(amount);
+    if (isNaN(originalAmount) || originalAmount <= 0 || originalAmount > 100000) {
+      return NextResponse.json(
+        { error: 'المبلغ غير صالح. يجب أن يكون بين 1 و 100,000 ريال.' },
+        { status: 400 }
+      );
+    }
+
+    // ──────────────────────────────────────────
+    // حماية 3: التحقق من صيغة البريد الإلكتروني
+    // ──────────────────────────────────────────
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(customer.email)) {
+      return NextResponse.json(
+        { error: 'صيغة البريد الإلكتروني غير صحيحة' },
+        { status: 400 }
+      );
+    }
+
+    // ──────────────────────────────────────────
+    // حماية 4: تنظيف المدخلات (XSS Prevention)
+    // ──────────────────────────────────────────
+    const sanitize = (str: string) => str.replace(/[<>"'&]/g, '').trim().substring(0, 100);
+    const cleanCustomer = {
+      name: sanitize(customer.name),
+      email: customer.email.trim().toLowerCase().substring(0, 100),
+      phone: customer.phone.replace(/[^0-9+\s]/g, '').trim().substring(0, 20)
+    };
+
+    // حساب المبلغ مع العمولة
     const commissionAmount = COMMISSION_RATE > 0
       ? parseFloat((originalAmount * COMMISSION_RATE / 100).toFixed(2))
       : 0;
@@ -69,9 +102,9 @@ export async function POST(req: Request) {
         language: "ar",
         reference: transaction.id,
         customer: {
-          name: customer.name,
-          email: customer.email,
-          phone: customer.phone
+          name: cleanCustomer.name,
+          email: cleanCustomer.email,
+          phone: cleanCustomer.phone
         },
         response_url: `${process.env.NEXT_PUBLIC_BASE_URL}/verify?reference=${transaction.id}`,
         cancel_url: `https://${process.env.SHOPIFY_STORE_DOMAIN}/cart`
