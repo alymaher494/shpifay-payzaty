@@ -3,18 +3,36 @@ import { supabaseAdmin } from '@/lib/supabase';
 
 export async function POST(req: Request) {
   try {
-    const { cartId, amount } = await req.json();
+    const { cartId, amount, customer } = await req.json();
 
-    // 1. Log to Supabase
+    // التحقق من بيانات العميل
+    if (!customer?.name || !customer?.email || !customer?.phone) {
+      return NextResponse.json(
+        { error: 'يرجى إدخال جميع بيانات العميل (الاسم، البريد الإلكتروني، رقم الجوال)' },
+        { status: 400 }
+      );
+    }
+
+    // 1. تسجيل العملية في قاعدة البيانات
     const { data: transaction, error: dbError } = await supabaseAdmin
       .from('transactions')
-      .insert([{ shopify_cart_id: cartId, amount: parseFloat(amount), status: 'pending' }])
+      .insert([{
+        shopify_cart_id: cartId,
+        amount: parseFloat(amount),
+        status: 'pending',
+        customer_name: customer.name,
+        customer_email: customer.email,
+        customer_phone: customer.phone
+      }])
       .select()
       .single();
 
-    if (dbError) throw new Error('Database logging failed');
+    if (dbError) {
+      console.error('DB Error:', dbError);
+      throw new Error('فشل في تسجيل العملية في قاعدة البيانات');
+    }
 
-    // 2. Call Payzaty
+    // 2. إرسال الطلب لبوابة Payzaty
     const payzatyRes = await fetch('https://api.payzaty.com/checkout', {
       method: 'POST',
       headers: {
@@ -28,9 +46,9 @@ export async function POST(req: Request) {
         language: "ar",
         reference: transaction.id,
         customer: {
-          name: "Shopify Customer",
-          email: "customer@domain.com",
-          phone: "+966 500000000"
+          name: customer.name,
+          email: customer.email,
+          phone: customer.phone
         },
         response_url: `${process.env.NEXT_PUBLIC_BASE_URL}/verify?reference=${transaction.id}`,
         cancel_url: `https://${process.env.SHOPIFY_STORE_DOMAIN}/cart`
@@ -38,13 +56,13 @@ export async function POST(req: Request) {
     });
 
     const payzatyData = await payzatyRes.json();
-    
+
     if (!payzatyRes.ok) {
       console.error('--- FULL PAYZATY ERROR ---', payzatyData);
-      throw new Error(JSON.stringify(payzatyData) || 'Payzaty API error');
+      throw new Error(payzatyData.error_text || payzatyData.error || 'خطأ من بوابة الدفع');
     }
 
-    // 3. Update Payzaty Checkout ID in DB
+    // 3. تحديث معرف الدفع في قاعدة البيانات
     await supabaseAdmin
       .from('transactions')
       .update({ payzaty_checkout_id: payzatyData.checkout_id })

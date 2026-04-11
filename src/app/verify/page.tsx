@@ -14,7 +14,7 @@ export default function VerifyPage({ searchParams }: { searchParams: { reference
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-white mb-2 tracking-wide font-sans drop-shadow-md">Aly Maher Payment Bridge</h1>
+          <h1 className="text-2xl font-bold text-white mb-2 tracking-wide font-sans drop-shadow-md">Payzaty Payment</h1>
           <h2 className="text-xl font-bold text-green-400 mb-3">تمت عملية الدفع بنجاح!</h2>
           <p className="text-blue-100/70 text-sm font-medium mb-8 text-center leading-relaxed">
             نشكرك على تسوقك معنا. تم تأكيد طلبك وإرساله للمتجر بنجاح.
@@ -27,6 +27,9 @@ export default function VerifyPage({ searchParams }: { searchParams: { reference
             العودة للمتجر الرئيسي
           </a>
         </div>
+      </div>
+      <div className="absolute bottom-6 text-slate-500 text-sm font-medium tracking-wider mt-10">
+        Copyright &copy; by Aly Maher
       </div>
     </div>
   );
