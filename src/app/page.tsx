@@ -8,9 +8,17 @@ function BridgeContent() {
   const cartId = searchParams.get('cart_id') || '';
   const amount = searchParams.get('amount') || '';
 
+  // بيانات العميل الأساسية
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+
+  // بيانات عنوان الشحن
+  const [city, setCity] = useState('');
+  const [district, setDistrict] = useState('');
+  const [street, setStreet] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -39,7 +47,12 @@ function BridgeContent() {
       const res = await fetch('/api/init-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cartId, amount, customer: { name, email, phone } })
+        body: JSON.stringify({
+          cartId,
+          amount,
+          customer: { name, email, phone },
+          shipping: { city, district, street, postalCode }
+        })
       });
       const data = await res.json();
 
@@ -56,10 +69,13 @@ function BridgeContent() {
     }
   };
 
+  const inputClass = "w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300";
+  const labelClass = "block text-blue-200/90 text-sm font-medium mb-1.5";
+
   return (
     <>
       {/* المبلغ */}
-      <div className="mb-6">
+      <div className="mb-5">
         <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-5 py-2">
           <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
@@ -75,49 +91,72 @@ function BridgeContent() {
           <p className="text-blue-200/80 text-sm font-medium animate-pulse">{status}</p>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="w-full space-y-4 text-right" dir="rtl">
+        <form onSubmit={handleSubmit} className="w-full space-y-3 text-right" dir="rtl">
+
+          {/* ═══════ قسم البيانات الشخصية ═══════ */}
+          <div className="flex items-center gap-2 mb-1">
+            <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <span className="text-blue-300/80 text-xs font-semibold">البيانات الشخصية</span>
+          </div>
+
           {/* الاسم */}
           <div>
-            <label htmlFor="name" className="block text-blue-200/90 text-sm font-medium mb-1.5">الاسم الكامل</label>
-            <input
-              id="name"
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="أدخل اسمك الكامل"
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300"
-            />
+            <label htmlFor="name" className={labelClass}>الاسم الكامل</label>
+            <input id="name" type="text" required value={name} onChange={(e) => setName(e.target.value)}
+              placeholder="أدخل اسمك الكامل" className={inputClass} />
           </div>
 
-          {/* الإيميل */}
-          <div>
-            <label htmlFor="email" className="block text-blue-200/90 text-sm font-medium mb-1.5">البريد الإلكتروني</label>
-            <input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="example@mail.com"
-              dir="ltr"
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 text-sm text-left focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300"
-            />
+          {/* الإيميل والجوال - صف واحد */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="email" className={labelClass}>البريد الإلكتروني</label>
+              <input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+                placeholder="example@mail.com" dir="ltr" className={inputClass + " text-left"} />
+            </div>
+            <div>
+              <label htmlFor="phone" className={labelClass}>رقم الجوال</label>
+              <input id="phone" type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)}
+                placeholder="+966 5XXXXXXXX" dir="ltr" className={inputClass + " text-left"} />
+            </div>
           </div>
 
-          {/* رقم الجوال */}
+          {/* ═══════ قسم عنوان الشحن ═══════ */}
+          <div className="flex items-center gap-2 mt-4 mb-1 pt-3 border-t border-white/5">
+            <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span className="text-blue-300/80 text-xs font-semibold">عنوان الشحن</span>
+          </div>
+
+          {/* المدينة والحي */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="city" className={labelClass}>المدينة</label>
+              <input id="city" type="text" required value={city} onChange={(e) => setCity(e.target.value)}
+                placeholder="الرياض" className={inputClass} />
+            </div>
+            <div>
+              <label htmlFor="district" className={labelClass}>الحي</label>
+              <input id="district" type="text" required value={district} onChange={(e) => setDistrict(e.target.value)}
+                placeholder="حي النرجس" className={inputClass} />
+            </div>
+          </div>
+
+          {/* الشارع */}
           <div>
-            <label htmlFor="phone" className="block text-blue-200/90 text-sm font-medium mb-1.5">رقم الجوال</label>
-            <input
-              id="phone"
-              type="tel"
-              required
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+966 5XXXXXXXX"
-              dir="ltr"
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 text-sm text-left focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300"
-            />
+            <label htmlFor="street" className={labelClass}>العنوان التفصيلي (الشارع، رقم المبنى)</label>
+            <input id="street" type="text" required value={street} onChange={(e) => setStreet(e.target.value)}
+              placeholder="شارع الأمير محمد، مبنى 15، شقة 3" className={inputClass} />
+          </div>
+
+          {/* الرمز البريدي */}
+          <div className="w-1/2">
+            <label htmlFor="postalCode" className={labelClass}>الرمز البريدي</label>
+            <input id="postalCode" type="text" value={postalCode} onChange={(e) => setPostalCode(e.target.value)}
+              placeholder="12345" dir="ltr" className={inputClass + " text-left"} />
           </div>
 
           {/* رسالة الخطأ */}
@@ -128,14 +167,12 @@ function BridgeContent() {
           )}
 
           {/* زر الدفع */}
-          <button
-            type="submit"
-            className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-bold text-base rounded-xl shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
-          >
+          <button type="submit"
+            className="w-full py-3.5 mt-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-bold text-base rounded-xl shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]">
             🔒 متابعة الدفع الآمن
           </button>
 
-          <p className="text-white/30 text-xs text-center mt-3">
+          <p className="text-white/30 text-xs text-center mt-2">
             بياناتك محمية ومشفرة بالكامل
           </p>
         </form>
@@ -147,7 +184,7 @@ function BridgeContent() {
 export default function PaymentBridge() {
   return (
     <div className="min-h-screen bg-[#001026] flex flex-col items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 text-center shadow-2xl relative overflow-hidden">
+      <div className="max-w-lg w-full bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 text-center shadow-2xl relative overflow-hidden">
         {/* Glow effect */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-blue-600 rounded-full blur-[100px] opacity-30"></div>
 

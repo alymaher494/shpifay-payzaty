@@ -12,7 +12,7 @@ const PAYZATY_BASE_URL = process.env.PAYZATY_MODE === 'sandbox'
 
 export async function POST(req: Request) {
   try {
-    const { cartId, amount, customer } = await req.json();
+    const { cartId, amount, customer, shipping } = await req.json();
 
     // ──────────────────────────────────────────
     // حماية 1: التحقق من بيانات العميل
@@ -49,11 +49,19 @@ export async function POST(req: Request) {
     // ──────────────────────────────────────────
     // حماية 4: تنظيف المدخلات (XSS Prevention)
     // ──────────────────────────────────────────
-    const sanitize = (str: string) => str.replace(/[<>"'&]/g, '').trim().substring(0, 100);
+    const sanitize = (str: string) => str.replace(/[<>"'&]/g, '').trim().substring(0, 200);
     const cleanCustomer = {
       name: sanitize(customer.name),
       email: customer.email.trim().toLowerCase().substring(0, 100),
       phone: customer.phone.replace(/[^0-9+\s]/g, '').trim().substring(0, 20)
+    };
+
+    // تنظيف بيانات الشحن
+    const cleanShipping = {
+      city: sanitize(shipping?.city || ''),
+      district: sanitize(shipping?.district || ''),
+      street: sanitize(shipping?.street || ''),
+      postalCode: (shipping?.postalCode || '').replace(/[^0-9]/g, '').substring(0, 10)
     };
 
     // حساب المبلغ مع العمولة
@@ -68,7 +76,11 @@ export async function POST(req: Request) {
       .insert([{
         shopify_cart_id: cartId,
         amount: originalAmount,
-        status: 'pending'
+        status: 'pending',
+        metadata: JSON.stringify({
+          customer: cleanCustomer,
+          shipping: cleanShipping
+        })
       }])
       .select()
       .single();
