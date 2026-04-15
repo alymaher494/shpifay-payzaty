@@ -104,10 +104,10 @@ export async function createShopifyOrder(transaction: any) {
         phone: customerData.phone
       },
 
-      // بريد التأكيد
       email: customerData.email,
       send_receipt: true,
-      send_fulfillment_receipt: true
+      send_fulfillment_receipt: true,
+      line_items: lineItems
     }
   };
 
