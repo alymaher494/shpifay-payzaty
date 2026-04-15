@@ -96,7 +96,7 @@ export async function createShopifyOrder(transaction: any) {
   if (!res.ok) {
     const errorData = await res.text();
     console.error("Shopify Order Error:", errorData);
-    throw new Error('Failed to create Shopify order');
+    throw new Error(`Shopify Error: ${errorData}`);
   }
 
   return await res.json();
