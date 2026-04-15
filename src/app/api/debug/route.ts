@@ -23,9 +23,6 @@ export async function GET(req: Request) {
   // الخطوة 1: فحص قاعدة البيانات
   // ═══════════════════════════════════════
   try {
-    // فحص أعمدة الجدول
-    const { data: columns } = await supabaseAdmin.rpc('get_table_columns', {}).catch(() => ({ data: null }));
-
     const { data: txList, error: txErr } = await supabaseAdmin
       .from('transactions')
       .select('*')
