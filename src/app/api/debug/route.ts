@@ -146,7 +146,8 @@ export async function GET(req: Request) {
         report.steps['3_shopify'] = {
           status: shopRes.ok ? '✅' : '❌',
           http_status: shopRes.status,
-          domain: shopDomain
+          domain: shopDomain,
+          token_preview: tokenRow.access_token.substring(0, 10) + '...'
         };
       } catch (e: any) {
         report.steps['3_shopify'] = { status: '❌', error: e.message };
