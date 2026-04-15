@@ -29,6 +29,33 @@ export async function createShopifyOrder(transaction: any) {
     console.warn('Could not parse transaction metadata');
   }
 
+  // 2. Fetch cart contents from Shopify
+  let lineItems = [];
+  try {
+    const cartRes = await fetch(`https://${shopDomain}/cart/${transaction.shopify_cart_id}.js`);
+    if (cartRes.ok) {
+      const cartData = await cartRes.json();
+      lineItems = cartData.items.map((item: any) => ({
+        variant_id: item.variant_id,
+        quantity: item.quantity,
+        price: (item.price / 100).toFixed(2),
+        title: item.product_title
+      }));
+    }
+  } catch (e) {
+    console.error("Cart fetch failed, using fallback item");
+  }
+
+  // Fallback: If cart is empty or expired, create a generic line item with the total amount
+  if (lineItems.length === 0) {
+    lineItems = [{
+      title: "طلب عبر بوابة Payzaty",
+      quantity: 1,
+      price: transaction.amount.toFixed(2),
+      requires_shipping: true
+    }];
+  }
+
   // تقسيم الاسم لأول واسم عائلة
   const nameParts = customerData.name.split(' ');
   const firstName = nameParts[0] || 'Customer';
